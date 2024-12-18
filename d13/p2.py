@@ -36,7 +36,7 @@ for machine_idx, machine in enumerate(machines):
         #input("")
     a_angle = ax/ay
     b_angle_offset = bx + tx/by + ty
-    b_a_ratio = 1/ (b_angle_offset * (1 / a_angle))
+    b_a_ratio = 1/ (b_angle_offset * (1 / a_angle)) # probably wrong
     for n in range(82):
         print(n + n * b_a_ratio)
     print(f"{b_a_ratio=}")
