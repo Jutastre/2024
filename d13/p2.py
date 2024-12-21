@@ -13,10 +13,10 @@ for rows in itertools.batched(data_string, 4):
     machine.append(int(rows[0].split(" ")[3][1:]))
     machine.append(int(rows[1].split(" ")[2][1:-1]))
     machine.append(int(rows[1].split(" ")[3][1:]))
-    machine.append(int(rows[2].split(" ")[1][2:-1]))
-    machine.append(int(rows[2].split(" ")[2][2:]))
-    # machine.append(int(rows[2].split(" ")[1][2:-1]) + 10_000_000_000_000)
-    # machine.append(int(rows[2].split(" ")[2][2:]) + 10_000_000_000_000)
+    # machine.append(int(rows[2].split(" ")[1][2:-1]))
+    # machine.append(int(rows[2].split(" ")[2][2:]))
+    machine.append(int(rows[2].split(" ")[1][2:-1]) + 10_000_000_000_000)
+    machine.append(int(rows[2].split(" ")[2][2:]) + 10_000_000_000_000)
     machines.append(machine)
 machine_answers = []
 for machine_idx, machine in enumerate(machines):
@@ -34,15 +34,15 @@ for machine_idx, machine in enumerate(machines):
         print(f"tx/ty = {tx/ty}")
         continue
         #input("")
-    a_angle = ax/ay
-    b_angle_offset = bx + tx/by + ty
-    b_a_ratio = 1/ (b_angle_offset * (1 / a_angle)) # probably wrong
-    for n in range(82):
-        print(n + n * b_a_ratio)
-    print(f"{b_a_ratio=}")
+    # a_angle = ax/ay
+    # b_angle_offset = bx + tx/by + ty
+    # b_a_ratio = 1/ (b_angle_offset * (1 / a_angle)) # probably wrong
+    # for n in range(82):
+    #     print(n + n * b_a_ratio)
+    # print(f"{b_a_ratio=}")
     machine_answers.append(machine_answer)
     print(f"{machine_idx + 1} machines processed")
-    input("")
+    # input("")
 
 answer = sum(machine_answers)
 
