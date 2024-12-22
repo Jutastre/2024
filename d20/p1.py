@@ -19,6 +19,7 @@ def neighbours(coords):
             continue
         yield neighbour
     return
+    
 
 def print_mid_run(map, ran_points):
     for y, row in enumerate(map):
@@ -29,28 +30,30 @@ def print_mid_run(map, ran_points):
                 print(char, end = '')
         print("")
 
-def run_race(map, start, end):
-    already_checked = []
+
+def map_track(map,start,end):
+    track_points = {}
     to_check = [start]
     time_spent = 0
-    while True:
+    while to_check:
         #print_mid_run(map, already_checked)
-        time_spent += 1
         to_check_next = []
-        if end in to_check:
-            return time_spent
+        #if end in to_check:
+            #return time_spent
         for point in to_check:
-            if point not in already_checked:
-                already_checked.append(point)
+            if point not in track_points:
+                track_points[point] = time_spent
             for tx, ty in neighbours(point):
-                if (tx, ty) in already_checked:
+                if (tx, ty) in track_points:
                     continue
                 if ((tx, ty) not in to_check_next) and (map[ty][tx] != "#"):
                     to_check_next.append((tx, ty))
         to_check = to_check_next
+        time_spent += 1
+    return track_points
 
 
-possible_cheats = set()
+possible_cheat_starts = set()
 
 for y, row in enumerate(map):
     for x, char in enumerate(row):
@@ -62,10 +65,11 @@ for y, row in enumerate(map):
                     start = (x, y)
                 for tx, ty in neighbours((x, y)):
                     if map[ty][tx] == "#":
-                        possible_cheats.add((tx, ty))
+                        possible_cheat_starts.add((tx, ty))
 
-original_race_time = run_race(map, start, end)
-number_of_possible_cheats = len(possible_cheats)
+track_map = map_track(map, start, end)
+original_race_time=track_map[end]
+number_of_possible_cheats = len(possible_cheat_starts)
 
 print(f"{original_race_time=}")
 print(f"{number_of_possible_cheats=}")
@@ -73,17 +77,29 @@ print(f"{number_of_possible_cheats=}")
 good_cheats = 0
 
 # cheat_register = {}
-
-for idx, cheat in enumerate(possible_cheats):
-    print(f"testing cheat #{idx+1}")
+good_cheat_list = []
+for idx, cheat in enumerate(possible_cheat_starts):
+    #print(f"testing cheat #{idx+1}")
     copied_map = copy.deepcopy(map)
     cx, cy = cheat
-    copied_map[cy] = copied_map[cy][:cx] + "." + copied_map[cy][cx + 1 :]
-    cheated_time = run_race(copied_map, start, end)
-    time_save = original_race_time - cheated_time
-    # cheat_register[cheat] = time_save
-    if time_save >= 100:
-        good_cheats += 1
+    minimum_start_point_value = 999999999999
+    minimum_start_point = None
+    for cheat_step_2 in neighbours(cheat):
+        if cheat_step_2 in track_map:
+            for start_point in neighbours(cheat):
+                if start_point is cheat_step_2:
+                    continue
+                if start_point in track_map and track_map[start_point] < minimum_start_point_value:
+                    minimum_start_point = start_point
+                    minimum_start_point_value = track_map[start_point]
+            if not minimum_start_point:
+                continue
+            time_save = (track_map[cheat_step_2] - minimum_start_point_value) -2
+            if time_save >= 100:
+                good_cheats += 1
+                good_cheat_list.append((cheat,cheat_step_2))
+
+
 
 
 print(f"Answer: {good_cheats}")
