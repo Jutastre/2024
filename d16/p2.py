@@ -1,6 +1,6 @@
 import itertools
 
-FILENAME = "tin.txt"
+FILENAME = "in.txt"
 
 
 with open(FILENAME) as f:
@@ -42,10 +42,15 @@ def neighbours(x, y, d):
 def backwards_neighbours(x, y, d):
     yield (x, y, (d - 1) % 4)
     yield (x, y, (d + 1) % 4)
-    yield (x, y + 1, d)
-    yield (x - 1, y, d)
-    yield (x, y - 1, d)
-    yield (x + 1, y, d)
+    match d:
+        case 0:
+            yield (x, y + 1, d)
+        case 1:
+            yield (x - 1, y, d)
+        case 2:
+            yield (x, y - 1, d)
+        case 3:
+            yield (x + 1, y, d)
 
 
 to_check = [start]
@@ -72,31 +77,47 @@ while updated_something:
     to_check = to_check_next
 
 in_short_path = set()
-to_check = []
 
+potential_winners = []
 min_score = 999999999999999999999999999999999999999999
-for pos, score in checked_positions.items():
-    if pos[:2] == end:
-        to_check.append(pos)
+for position, score in checked_positions.items():
+    if position[:2] == end:
+        potential_winners.append((position,score))
         min_score = min(min_score, score)
 print(min_score)
 
+to_check = []
+for position,score in potential_winners:
+    if score == min_score:
+        to_check.append(position)
+
 while to_check:
     to_check_next = []
-    for pos in to_check:
+    for position in to_check:
+        x, y, d = position
         in_short_path.add((x, y))
-        x, y, d = pos
         for neighbour in backwards_neighbours(x, y, d):
-            if neighbour not in checked_positions:
+            if neighbour not in checked_positions or neighbour in to_check_next:
                 continue
-            if neighbour[2] != pos[2] and (
-                checked_positions[pos] == checked_positions[neighbour] + 50
+            if neighbour[2] != position[2] and (
+                checked_positions[position] == checked_positions[neighbour] + 1000
             ):
                 to_check_next.append(neighbour)
-            if neighbour[2] == pos[2] and (
-                checked_positions[pos] == checked_positions[neighbour] + 1
+            elif neighbour[2] == position[2] and (
+                checked_positions[position] == checked_positions[neighbour] + 1
             ):
                 to_check_next.append(neighbour)
     to_check = to_check_next
-print(in_short_path)
+# print(in_short_path)
+
+def print_map(map,pois):
+    for y,row in enumerate(map):
+        for x,char in enumerate(row):
+            if (x,y) in pois:
+                print('O',end='')
+            else:
+                print(char,end='')
+        print("")
+    
+print_map(map,in_short_path)
 print(len(in_short_path))
