@@ -1,6 +1,6 @@
 import itertools
 
-FILENAME = "in.txt"
+FILENAME = "tin.txt"
 
 
 with open(FILENAME) as f:
@@ -22,48 +22,47 @@ machine_answers = []
 for machine_idx, machine in enumerate(machines):
     machine_answer = 0
     ax, ay, bx, by, tx, ty = machine
-    if ax / ay == bx / by:
-        print("same angle found")
-        print(f"{ax/ay} == {bx/by}")
-        print(f"target angle is{tx/ty}")
-        raise (Exception)
-    if (ax / ay > tx / ty and bx / by > tx / ty) or (
-        ax / ay < tx / ty and bx / by < tx / ty
-    ):
-        print(
-            "not possible because (ax/ay > tx/ty and bx/by > tx/ty) or (ax/ay < tx/ty and bx/by < tx/ty)"
-        )
-        print(f"ax/ay = {ax/ay}")
-        print(f"bx/by = {bx/by}")
-        print(f"tx/ty = {tx/ty}")
-        continue
-    swapped = False
-    if (ay / ax) > (by / bx):
+    swapped_a_b = False
+    if ay / ax > by / bx:
         ax, ay, bx, by = bx, by, ax, ay
-        swapped = True
-    max = (tx // ax) + 1
-    pivot = 0
-    pivot_size = max // 2
-    while pivot_size > 0:
-        if (ty - (pivot * ay)) / (tx - (pivot * ax)) > (by / bx):
-            pivot -= pivot_size
-        elif (ty - (pivot * ay)) / (tx - (pivot * ax)) == (by / bx):
+        swapped_a_b = True
+    a_presses = 1
+    b_presses = False
+    if ay / ax > ty / tx or by / bx < ty / tx:  # impossible case
+        continue
+    while (ty - (a_presses * ay)) / (tx - (a_presses * ax)) < by / bx:
+        a_presses += 100_000_000
+    while (ty - (a_presses * ay)) / (tx - (a_presses * ax)) > by / bx:
+        a_presses -= 100_000
+    while (ty - (a_presses * ay)) / (tx - (a_presses * ax)) < by / bx:
+        a_presses += 1000
+    while (ty - (a_presses * ay)) / (tx - (a_presses * ax)) > by / bx:
+        a_presses -= 1
+
+    print(f"{a_presses=}")
+    print(f"{a_presses * ax=}")
+    print(f"{a_presses * ay=}")
+    print(f"{tx-(a_presses * ax)=}")
+    print(f"{tx-(a_presses * ay)=}")
+
+    for press_ec in range(-8000, 8000):
+        offset_a_presses = a_presses + press_ec
+        if ((tx - (offset_a_presses * ax)) % bx != 0) or (
+            (ty - (offset_a_presses * ay)) % by != 0
+        ):
+            continue
+        if ((tx - (offset_a_presses * ax)) // bx) != (
+            (ty - (offset_a_presses * ay)) // by
+        ):
             break
-        else:
-            pivot += pivot_size
-        pivot_size //= 2
-    if (tx - (pivot * ax)) % bx == 0:
-        print(f"{pivot=}")
-        print(f"{(pivot * ax)=}")
-        print(f"{(tx - (pivot * ax))=}")
-        print(pivot * ax)
-        if swapped:
-            machine_answer = (pivot) + 3*((tx - (pivot * ax)) // bx)
-        else:
-            machine_answer = (3*pivot) + ((tx - (pivot * ax)) // bx)
-    machine_answers.append(machine_answer)
-    print(f"{machine_idx + 1} machines processed")
-    # input("")
+        b_presses = (tx - (offset_a_presses * ax)) // bx
+        break
+    if not b_presses:
+        continue
+    if swapped_a_b:
+        a_presses, b_presses = b_presses, a_presses
+    machine_answers.append((a_presses * 3) + b_presses)
+
 
 answer = sum(machine_answers)
 
