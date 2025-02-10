@@ -49,7 +49,7 @@ while (xmax, ymax) not in to_check:
     to_check_next = []
     for position in to_check:
         for neighbour in neighbours(position):
-            if neighbour not in already_checked and neighbour not in fallen_bytes:
+            if neighbour not in to_check_next and neighbour not in already_checked and neighbour not in fallen_bytes:
                 to_check_next.append(neighbour)
         already_checked.append(position)
     to_check = to_check_next

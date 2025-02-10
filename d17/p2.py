@@ -105,17 +105,39 @@ def solution_to_value(solution):
     return register_value
 
 solution = []
-while len(solution) < len(program):
-    solution.append(0)
-    for number_to_test in range(0,8):
-        # if len(solution) == 1 and number_to_test == 0:
-        #     number_to_test = 2
-        solution[-1] = number_to_test
-        register_value = solution_to_value(solution)
-        output = run_program(program, register_value)
-        if output[0] == program[len(program) - len(solution)]:
-            break
-print(solution)
-print(program)
-print(run_program(program, solution_to_value(solution)))
-print(solution_to_value(solution))
+
+def recursive_test(partial_solution:list[int], program):
+    output = run_program(program, solution_to_value(partial_solution))
+    if len(partial_solution) > 0:
+        for idx,n in enumerate(reversed(output)):
+            if n != program[-idx - 1]:
+                print(f"Wrong output ({partial_solution=})({output=})")
+                return False
+    if len(output) < len(program):
+        for number_to_test in range(0,8):
+            solution_to_test = [n for n in partial_solution] + [number_to_test]
+            result = recursive_test(solution_to_test, program)
+            if result:
+                return result
+    if len(output) == len(program):
+        return partial_solution
+    
+    print("EOF")
+    return False
+
+# while len(solution) < len(program):
+#     solution.append(0)
+#     for number_to_test in range(0,8):
+#         # if len(solution) == 1 and number_to_test == 0:
+#         #     number_to_test = 2
+#         solution[-1] = number_to_test
+#         register_value = solution_to_value(solution)
+#         output = run_program(program, register_value)
+#         if output[0] == program[len(program) - len(solution)]:
+#             break
+solution = recursive_test([], program)
+print(f"{solution=}")
+print(f"{program=}")
+if solution:
+    print(f"{run_program(program, solution_to_value(solution))=}")
+    print(solution_to_value(solution))
