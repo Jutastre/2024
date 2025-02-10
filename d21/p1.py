@@ -32,7 +32,6 @@ def print_or_panic(x: int, y: int, pad: dict, depth: int):
         print(f"{x=} {y=}")
         input()
         return
-    return
     while len(print_lines) < 4:
         print_lines.append([])
     for line_idx in range(len(print_lines)):

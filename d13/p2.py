@@ -1,6 +1,6 @@
 import itertools
 
-FILENAME = "tin.txt"
+FILENAME = "in.txt"
 
 
 with open(FILENAME) as f:
@@ -22,47 +22,64 @@ machine_answers = []
 for machine_idx, machine in enumerate(machines):
     machine_answer = 0
     ax, ay, bx, by, tx, ty = machine
+    # one button cases handled first to avoid ruling them out due to floating point errors -- actually these cases should be impossible with a and b only having two digit numbers, with t being so large
+    if tx % ax == 0 and ty % ay == 0 and tx // ax == ty // ay:
+        machine_answers.append(machine_answer:=((tx // ax) * 3))
+        print(f"machine #{machine_idx} resulted in {machine_answer}, ({(tx // ax)}) -- A ONLY")
+        continue
+    if tx % bx == 0 and ty % by == 0 and tx // bx == ty // by:
+        machine_answers.append(machine_answer:=(tx // bx))
+        print(f"machine #{machine_idx} resulted in {machine_answer}, ({(tx // bx)}) -- B ONLY")
+        continue
+
+
     swapped_a_b = False
     if ay / ax > by / bx:
         ax, ay, bx, by = bx, by, ax, ay
         swapped_a_b = True
     a_presses = 1
     b_presses = False
+
+
     if ay / ax > ty / tx or by / bx < ty / tx:  # impossible case
         continue
-    while (ty - (a_presses * ay)) / (tx - (a_presses * ax)) < by / bx:
-        a_presses += 100_000_000
-    while (ty - (a_presses * ay)) / (tx - (a_presses * ax)) > by / bx:
-        a_presses -= 100_000
-    while (ty - (a_presses * ay)) / (tx - (a_presses * ax)) < by / bx:
-        a_presses += 1000
-    while (ty - (a_presses * ay)) / (tx - (a_presses * ax)) > by / bx:
-        a_presses -= 1
-
-    print(f"{a_presses=}")
-    print(f"{a_presses * ax=}")
-    print(f"{a_presses * ay=}")
-    print(f"{tx-(a_presses * ax)=}")
-    print(f"{tx-(a_presses * ay)=}")
-
-    for press_ec in range(-8000, 8000):
-        offset_a_presses = a_presses + press_ec
-        if ((tx - (offset_a_presses * ax)) % bx != 0) or (
-            (ty - (offset_a_presses * ay)) % by != 0
+    adjustment_size = 100_000_000
+    sign = 1
+    while adjustment_size >= 1:
+        while (
+            (((tx - (a_presses * ax)) // bx) <= ((ty - (a_presses * ay)) // by)) ^ 
+            (sign == 1)
         ):
-            continue
-        if ((tx - (offset_a_presses * ax)) // bx) != (
-            (ty - (offset_a_presses * ay)) // by
-        ):
+            a_presses += adjustment_size * sign
+        sign *= -1
+        adjustment_size //= 10
+    for adjustment in range(-1,2):
+        adjusted_a_presses = a_presses + adjustment
+        if (((tx - (adjusted_a_presses * ax)) // bx) == ((ty - (adjusted_a_presses * ay)) // by)):
+            b_presses = (tx - (adjusted_a_presses * ax)) // bx
+
+            ax_distance = adjusted_a_presses * ax
+            ay_distance = adjusted_a_presses * ay
+            bx_distance = b_presses * bx
+            by_distance = b_presses * by
+            if ax_distance + bx_distance != tx or ay_distance + by_distance != ty:
+                b_presses = False
+                continue
+            a_presses = adjusted_a_presses
             break
-        b_presses = (tx - (offset_a_presses * ax)) // bx
-        break
-    if not b_presses:
+        else:
+            continue
+    if not b_presses or not a_presses:
+        print(f"machine #{machine_idx} failed #1")
         continue
     if swapped_a_b:
+        ax, ay, bx, by = bx, by, ax, ay
         a_presses, b_presses = b_presses, a_presses
-    machine_answers.append((a_presses * 3) + b_presses)
-
+    machine_answer = (a_presses * 3) + b_presses
+    print(f"machine #{machine_idx} resulted in {machine_answer}, ({a_presses}a + {b_presses}b)")
+    # print(f"X = {ax_distance} + {bx_distance} == {ax_distance + bx_distance}, {tx=}")
+    # print(f"Y = {ay_distance} + {by_distance} == {ay_distance + by_distance}, {ty=}")
+    machine_answers.append(machine_answer)
 
 answer = sum(machine_answers)
 
