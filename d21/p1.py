@@ -1,8 +1,7 @@
 import itertools
 import copy
 
-FILENAME = "tin.txt"
-
+FILENAME = "in.txt"
 
 with open(FILENAME) as f:
     data = f.read().strip().split("\n")
@@ -14,9 +13,8 @@ class numpad_robot:
         self.y = 3
 
     def calculate_commands(self, target_sequence: str):
-        output_sequences = [""]
+        output_sequence = []
         for button in target_sequence:
-            button_sequences = []
             match button:
                 case "7":
                     tx = 0
@@ -45,107 +43,114 @@ class numpad_robot:
                 case "3":
                     tx = 2
                     ty = 2
-
                 case "0":
                     tx = 1
                     ty = 3
                 case "A":
                     tx = 2
                     ty = 3
-            button_subsequences = []
-            if self.x != tx:
-                if self.x < tx:
-                    button = ">"
+            if self.x == tx:
+                if self.y > ty:
+                    output_sequence.append("^" * (self.y - ty))
                 else:
-                    button = "<"
-                count = abs(self.x - tx)
-                button_subsequences.append(button * count)
-            if self.y != ty:
-                if self.y < ty:
-                    button = "v"
+                    output_sequence.append("v" * (ty - self.y))
+            elif self.y == ty:
+                if self.x > tx:
+                    output_sequence.append("<" * (self.x - tx))
                 else:
-                    button = "^"
-                count = abs(self.y - ty)
-                button_subsequences.append(button * count)
-
-            if len(button_subsequences) == 0:
-                button_sequences.append("A")
-            elif len(button_subsequences) == 1:
-                button_sequences.append(button_subsequences[0] + "A")
+                    output_sequence.append(">" * (tx - self.x))
+            elif self.y == 3 and tx == 0:
+                output_sequence.append(("^" * (self.y - ty)) + ("<" * (self.x - tx)))
+            elif self.x == 0 and ty == 3:
+                output_sequence.append((">" * (tx - self.x)) + ("v" * (ty - self.y)))
+            # "normal" case:
             else:
-                button_sequences.append(button_subsequences[0] + button_subsequences[1] + "A")
-                button_sequences.append(button_subsequences[1] + button_subsequences[0] + "A")
-            new_output_sequences = []
-            for previous_sequence in output_sequences:
-                for button_sequence in button_sequences:
-                    new_output_sequences.append(previous_sequence + button_sequence)
-            output_sequences = new_output_sequences
+                if tx < self.x:
+                    output_sequence.append("<" * (self.x - tx))
+                if ty < self.y:
+                    output_sequence.append("^" * (self.y - ty))
+                if ty > self.y:
+                    output_sequence.append("v" * (ty - self.y))
+                if tx > self.x:
+                    output_sequence.append(">" * (tx - self.x))
+
+            output_sequence.append("A")
             self.x = tx
             self.y = ty
-        return output_sequences
-
-
-class control_robot:
-    button_positions = {"^": (1, 0), "A": (2, 0), "<": (0, 1), "v": (1, 1), ">": (2, 1)}
-
+        return "".join(output_sequence)
+    
+class arrow_robot:
     def __init__(self):
         self.x = 2
         self.y = 0
 
-    def calculate_commands(self, target_sequences: str):
-        total_output_sequences = []
-        for target_sequence in target_sequences:
-            output_sequences = [""]
-            for button in target_sequence:
-                button_sequences = []
-                tx,ty = control_robot.button_positions[button]
-                button_subsequences = []
-                if self.x != tx:
-                    if self.x < tx:
-                        button = ">"
-                    else:
-                        button = "<"
-                    count = abs(self.x - tx)
-                    button_subsequences.append(button * count)
-                if self.y != ty:
-                    if self.y < ty:
-                        button = "v"
-                    else:
-                        button = "^"
-                    count = abs(self.y - ty)
-                    button_subsequences.append(button * count)
-
-                if len(button_subsequences) == 0:
-                    button_sequences.append("A")
-                elif len(button_subsequences) == 1:
-                    button_sequences.append(button_subsequences[0] + "A")
+    def calculate_commands(self, target_sequence: str, debug = False):
+        output_sequence = []
+        for button in target_sequence:
+            match button:
+                case "^":
+                    tx = 1
+                    ty = 0
+                case "A":
+                    tx = 2
+                    ty = 0
+                case "<":
+                    tx = 0
+                    ty = 1
+                case "v":
+                    tx = 1
+                    ty = 1
+                case ">":
+                    tx = 2
+                    ty = 1
+            if self.x == tx:
+                if self.y > ty:
+                    output_sequence.append("^" * (self.y - ty))
                 else:
-                    button_sequences.append(button_subsequences[0] + button_subsequences[1] + "A")
-                    button_sequences.append(button_subsequences[1] + button_subsequences[0] + "A")
-                new_output_sequences = []
-                for previous_sequence in output_sequences:
-                    for button_sequence in button_sequences:
-                        new_output_sequences.append(previous_sequence + button_sequence)
-                output_sequences = new_output_sequences
-                self.x = tx
-                self.y = ty
-            total_output_sequences += output_sequences
-        return total_output_sequences
+                    output_sequence.append("v" * (ty - self.y))
+            elif self.y == ty:
+                if self.x > tx:
+                    output_sequence.append("<" * (self.x - tx))
+                else:
+                    output_sequence.append(">" * (tx - self.x))
+            elif self.x == 0 and ty == 0:
+                output_sequence.append((">" * (tx - self.x)) + "^")
+            elif self.y == 0 and tx == 0:
+                output_sequence.append("v" + ("<" * (self.x - tx)))
+            # "normal" case:
+            else:
+                if tx < self.x:
+                    output_sequence.append("<" * (self.x - tx))
+                if ty < self.y:
+                    output_sequence.append("^" * (self.y - ty))
+                if ty > self.y:
+                    output_sequence.append("v" * (ty - self.y))
+                if tx > self.x:
+                    output_sequence.append(">" * (tx - self.x))
+
+            output_sequence.append("A")
+            self.x = tx
+            self.y = ty
+        return "".join(output_sequence)
+
+def doublebot_it(sequence):
+    door_robot = numpad_robot()
+    robot1 = arrow_robot()
+    robot2 = arrow_robot()
+
+    door_sequences = door_robot.calculate_commands(row)
+    control_sequence_1 = robot1.calculate_commands(door_sequences, debug = True)
+    control_sequence_2 = robot2.calculate_commands(control_sequence_1, debug = True)
+    return control_sequence_2
 
 
 complexity_sum = 0
 for row in data:
-    door_robot = numpad_robot()
-    control_robot_1 = control_robot()
-    control_robot_2 = control_robot()
-
-    door_sequences = door_robot.calculate_commands(row)
-    control_sequences_1 = control_robot_1.calculate_commands(door_sequences)
-    control_sequences_2 = control_robot_2.calculate_commands(control_sequences_1)
-    minimum_length = min((len(sequence) for sequence in control_sequences_2))
-    complexity = minimum_length * int(row[:-1])
+    sequence = doublebot_it(row)
+    print(sequence)
+    complexity = len(sequence) * int(row[:-1])
+    print(f"{len(sequence)} * {int(row[:-1])} = {complexity}")
     complexity_sum += complexity
-    print(f"{minimum_length =}")
     print(f"{int(row[:-1]) =}")
     print(f"{complexity =}")
 
