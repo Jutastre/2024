@@ -41,25 +41,69 @@ def get_gate_value(gate):
 # for gate in gates.keys():
 #     if gate[0] == 'z':
 #         z_gates[gate] = get_gate_value(gate)
-z_gates = sorted([gate for gate in gates.keys() if gate[0] == "z"], reverse=True)
-for gate in z_gates:
-    gate_tiers: list[set[str]] = []
-    gate_tiers.append(set([gate]))
-    idx = 0
-    while gate_tiers[idx]:
-        gate_tiers.append(set())
-        for gate2 in gate_tiers[idx]:
-            if gates[gate2][0] == "ABS":
-                break
-            op1, op2 = gates[gate2][1]
-            gate_tiers[-1].add(op1)
-            gate_tiers[-1].add(op2)
-        idx += 1
+z_gates = sorted([gate for gate in gates.keys() if gate[0] == "z"], reverse=False)
+x_gates = sorted([gate for gate in gates.keys() if gate[0] == "x"], reverse=False)
+y_gates = sorted([gate for gate in gates.keys() if gate[0] == "y"], reverse=False)
 
-    print(f"---------------------------")
-    print(f"                       map for {gate=}")
-    for idx, tier in enumerate(gate_tiers):
-        print(f"{idx}: {tier=}")
+def set_x(num:int):
+    binary = []
+    while num:
+        binary.append(num%2)
+        num //= 2
+    while len(binary) < len(x_gates):
+        binary.append(0)
+    for gate,value in zip(x_gates, binary):
+        gates[gate] = ("ABS", value)
+
+def set_y(num:int):
+    binary = []
+    while num:
+        binary.append(num%2)
+        num //= 2
+    while len(binary) < len(x_gates):
+        binary.append(0)
+    for gate,value in zip(x_gates, binary):
+        gates[gate] = ("ABS", value)
+
+def get_z():
+    binary = []
+    for gate in z_gates:
+        binary.append(str(get_gate_value(gate)))
+    return int("".join(binary), base = 2)
+
+
+test_x = 0b11111111111111111111111111111111111111111111111111111111111111111111
+test_y = 0b11111111111111111111111111111111111111111111111111111111111111111111
+test_x = 0
+test_y = 0
+
+set_x(test_x)
+set_y(test_y)
+
+print(get_z())
+
+print(f"{get_z():047b}")
+
+
+
+# for gate in z_gates:
+#     gate_tiers: list[set[str]] = []
+#     gate_tiers.append(set([gate]))
+#     idx = 0
+#     while gate_tiers[idx]:
+#         gate_tiers.append(set())
+#         for gate2 in gate_tiers[idx]:
+#             if gates[gate2][0] == "ABS":
+#                 break
+#             op1, op2 = gates[gate2][1]
+#             gate_tiers[-1].add(op1)
+#             gate_tiers[-1].add(op2)
+#         idx += 1
+
+#     print(f"---------------------------")
+#     print(f"                       map for {gate=}")
+#     for idx, tier in enumerate(gate_tiers):
+#         print(f"{idx}: {tier=}")
 
 # z_bits = ""
 
