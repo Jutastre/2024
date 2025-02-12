@@ -3,108 +3,163 @@ import copy
 
 FILENAME = "in.txt"
 
-cheat_distance = 20
-
 with open(FILENAME) as f:
-    map = f.read().strip().split("\n")
-
-xmax = len(map[0]) - 1
-ymax = len(map) - 1
+    data = f.read().strip().split("\n")
 
 
-def neighbours(coords):
-    x, y = coords
-    for neighbour in ((x - 1, y), (x, y - 1), (x + 1, y), (x, y + 1)):
-        nx, ny = neighbour
-        if nx < 0 or nx > xmax or ny < 0 or ny > ymax:
-            continue
-        yield neighbour
-    return
-
-
-def long_distance_neighbour(coords):
-    x, y = coords
-    for x_offset, y_offset in itertools.product(
-        range(-(cheat_distance), cheat_distance+1),
-        range(-(cheat_distance), cheat_distance+1),
-    ):
-        if (distance := abs(x_offset) + abs(y_offset)) > (cheat_distance):
-            continue
-        nx, ny = x + x_offset, y + y_offset
-        if nx < 0 or nx > xmax or ny < 0 or ny > ymax:
-            continue
-        yield ((nx, ny), distance)
-
-
-def print_mid_run(map, ran_points):
-    for y, row in enumerate(map):
-        for x, char in enumerate(row):
-            if (x, y) in ran_points:
-                print("*", end="")
+def calculate_numpad_commands(target_sequence: str):
+    x = 2
+    y = 3
+    output_sequence = []
+    for button in target_sequence:
+        match button:
+            case "7":
+                tx = 0
+                ty = 0
+            case "8":
+                tx = 1
+                ty = 0
+            case "9":
+                tx = 2
+                ty = 0
+            case "4":
+                tx = 0
+                ty = 1
+            case "5":
+                tx = 1
+                ty = 1
+            case "6":
+                tx = 2
+                ty = 1
+            case "1":
+                tx = 0
+                ty = 2
+            case "2":
+                tx = 1
+                ty = 2
+            case "3":
+                tx = 2
+                ty = 2
+            case "0":
+                tx = 1
+                ty = 3
+            case "A":
+                tx = 2
+                ty = 3
+        if x == tx:
+            if y > ty:
+                output_sequence.append("^" * (y - ty))
             else:
-                print(char, end="")
-        print("")
+                output_sequence.append("v" * (ty - y))
+        elif y == ty:
+            if x > tx:
+                output_sequence.append("<" * (x - tx))
+            else:
+                output_sequence.append(">" * (tx - x))
+        elif y == 3 and tx == 0:
+            output_sequence.append(("^" * (y - ty)) + ("<" * (x - tx)))
+        elif x == 0 and ty == 3:
+            output_sequence.append((">" * (tx - x)) + ("v" * (ty - y)))
+        # "normal" case:
+        else:
+            if tx < x:
+                output_sequence.append("<" * (x - tx))
+            if ty < y:
+                output_sequence.append("^" * (y - ty))
+            if ty > y:
+                output_sequence.append("v" * (ty - y))
+            if tx > x:
+                output_sequence.append(">" * (tx - x))
+
+        output_sequence.append("A")
+        x = tx
+        y = ty
+    return "".join(output_sequence)
+
+memo = {}
+
+def calculate_arrow_command_length(target_sequence: str, depth: int):
+    if depth < 1:
+        return len(target_sequence)
+    x = 2
+    y = 0
+    if (target_sequence,depth) in memo:
+        return memo[(target_sequence,depth)]
+    target_output = []
+    for button in target_sequence:
+        match button:
+            case "^":
+                tx = 1
+                ty = 0
+            case "A":
+                tx = 2
+                ty = 0
+            case "<":
+                tx = 0
+                ty = 1
+            case "v":
+                tx = 1
+                ty = 1
+            case ">":
+                tx = 2
+                ty = 1
+        if x == tx:
+            if y > ty:
+                target_output.append("^" * (y - ty))
+            else:
+                target_output.append("v" * (ty - y))
+        elif y == ty:
+            if x > tx:
+                target_output.append("<" * (x - tx))
+            else:
+                target_output.append(">" * (tx - x))
+        elif x == 0 and ty == 0:
+            target_output.append((">" * (tx - x)) + "^")
+        elif y == 0 and tx == 0:
+            target_output.append("v" + ("<" * (x - tx)))
+        # "normal" case:
+        else:
+            if tx < x:
+                target_output.append("<" * (x - tx))
+            if ty < y:
+                target_output.append("^" * (y - ty))
+            if ty > y:
+                target_output.append("v" * (ty - y))
+            if tx > x:
+                target_output.append(">" * (tx - x))
+
+        target_output.append("A")
+        x = tx
+        y = ty
+    target_result = "".join(target_output)
+
+    if depth > 1:
+        sequence_to_split = target_result.replace("A","AB").split("B")
+        total_output = []
+        for subsequence in sequence_to_split:
+            total_output.append(calculate_arrow_command_length(subsequence, depth-1))
+        final_sum = sum(total_output)
+    else:
+        final_sum = len(target_result)
+    memo[(target_sequence,depth)] = final_sum
+    return final_sum
+
+def bot_it_more(sequence):
+
+    control_sequence = calculate_numpad_commands(row)
+    answer = calculate_arrow_command_length(control_sequence, depth = 25)
+    return answer
 
 
-def map_track(map, start, end):
-    track_points = {}
-    to_check = [start]
-    time_spent = 0
-    while to_check:
-        # print_mid_run(map, already_checked)
-        to_check_next = []
-        # if end in to_check:
-        # return time_spent
-        for point in to_check:
-            if point not in track_points:
-                track_points[point] = time_spent
-            for tx, ty in neighbours(point):
-                if (tx, ty) in track_points:
-                    continue
-                if ((tx, ty) not in to_check_next) and (map[ty][tx] != "#"):
-                    to_check_next.append((tx, ty))
-        to_check = to_check_next
-        time_spent += 1
-    return track_points
 
+complexity_sum = 0
+for row in data:
+    sequence_length = bot_it_more(row)
+    print(sequence_length)
+    complexity = sequence_length * int(row[:-1])
+    print(f"{sequence_length} * {int(row[:-1])} = {complexity}")
+    complexity_sum += complexity
+    print(f"{int(row[:-1]) =}")
+    print(f"{complexity =}")
 
-possible_cheat_starts = set()
-
-for y, row in enumerate(map):
-    for x, char in enumerate(row):
-        match char:
-            case "E":
-                end = (x, y)
-            case "S":
-                if char == "S":
-                    start = (x, y)
-                # for tx, ty in neighbours((x, y)):
-                #     if map[ty][tx] == "#":
-                #         possible_cheat_starts.add((tx, ty))
-
-track_map = map_track(map, start, end)
-original_race_time = track_map[end]
-
-print(f"{original_race_time=}")
-#print(f"{number_of_possible_cheats=}")
-
-good_cheats = 0
-
-# cheat_register = {}
-good_cheat_list = []
-for cheat_start in track_map:
-    # print(f"testing cheat #{idx+1}")
-    copied_map = copy.deepcopy(map)
-    for cheat_end, distance in long_distance_neighbour(cheat_start):
-        if cheat_end not in track_map:
-            continue
-        time_save = 0
-        if track_map[cheat_end] > track_map[cheat_start]:
-            time_save = (track_map[cheat_end] - track_map[cheat_start]) - distance
-
-        if time_save >= 100:
-            good_cheats += 1
-            good_cheat_list.append((cheat_start, cheat_end))
-
-
-print(f"Answer: {good_cheats}")
+print(f"Answer: {complexity_sum}")
