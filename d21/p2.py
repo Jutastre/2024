@@ -146,7 +146,7 @@ def calculate_arrow_command_length(target_sequence: str, depth: int):
 
 def bot_it_more(sequence):
 
-    control_sequence = calculate_numpad_commands(row)
+    control_sequence = calculate_numpad_commands(sequence)
     answer = calculate_arrow_command_length(control_sequence, depth = 25)
     return answer
 
