@@ -7,7 +7,9 @@ import random
 sys.setrecursionlimit(50)
 random.seed()
 FILENAME = "in.txt"
-BIG_NUMBER = 2**45
+MAX_BITS = 44
+BIG_NUMBER = 2**MAX_BITS
+
 
 # dbj z16 ; qqp jcd ; z36 fhv
 # known_swaps = [("fjh", "qff"), ("dbj", "z16"), ("qqp", "jcd"), ("z36", "fhv")]
@@ -17,7 +19,7 @@ BIG_NUMBER = 2**45
 # qff, qnw
 
 # known_swaps = [("qff","qnw"),("dbj","z16"),("qqp","z23"),("z36","fbq")]
-known_swaps = [("qff","qnw"),("dbj","z16"),("qqp","z23")]
+known_swaps = [("qff", "qnw"), ("dbj", "z16"), ("qqp", "z23")]
 
 
 with open(FILENAME) as f:
@@ -103,7 +105,7 @@ def test_addition(x: int, y: int, gates):
 
 
 def find_correct_bits(minimum_bits: int, gates):
-    for n in range(max(minimum_bits,1), 45):
+    for n in range(max(minimum_bits, 1), MAX_BITS):
         # print(f"testing with {n=}")
         test_number = 2**n
         test_result1 = test_addition(test_number, 0, gates)
@@ -111,27 +113,27 @@ def find_correct_bits(minimum_bits: int, gates):
         expected_result = test_number
         # print(f"{expected_result=}    {test_result1=}    {test_result2=}")
         if test_result1 != expected_result or test_result1 != test_result2:
-            return n-1
+            return n - 1
         test_number = (2 ** (n + 1)) - 1
         test_result1 = test_addition(test_number, 0, gates)
         test_result2 = test_addition(0, test_number, gates)
         expected_result = test_number
         # print(f"{expected_result=}    {test_result1=}    {test_result2=}")
         if test_result1 != expected_result or test_result1 != test_result2:
-            return n-1
+            return n - 1
         if n == 1:
-            if test_addition(0,0,gates) != 0:
+            if test_addition(0, 0, gates) != 0:
                 return 0
-            if test_addition(1,0,gates) != 1:
+            if test_addition(1, 0, gates) != 1:
                 return 0
-            if test_addition(0,1,gates) != 1:
+            if test_addition(0, 1, gates) != 1:
                 return 0
-            if test_addition(1,1,gates) == 2:
+            if test_addition(1, 1, gates) % 2 == 0:
                 continue
         else:
-            num = int("1" * (n-1),base = 2)
-            if test_addition(num, num, gates) != num+num:
-                return n-1
+            num = int("1" * (n - 1), base=2)
+            if test_addition(num, num, gates) != num + num:
+                return n - 1
         for m in range(5):
             random_number = random.randint(0, BIG_NUMBER)
             as_binary = f"{random_number:b}"
@@ -142,48 +144,56 @@ def find_correct_bits(minimum_bits: int, gates):
             expected_result = test_number
             # print(f"{expected_result=}    {test_result1=}    {test_result2=}")
             if test_result1 != expected_result or test_result1 != test_result2:
-                return n-1
-    print(f"{swap1=};{swap2=}")
-    raise Exception("NOTHING WRONG EXCEPTION")
+                return n - 1
+    return MAX_BITS
 
 
 # result = test_addition(0b111,0,gates)
 # binary_result = f"{result:050b}"
 # print(binary_result)
 
-for swap1, swap2 in known_swaps:
-    gates[swap1], gates[swap2] = gates[swap2], gates[swap1]
+# for swap1, swap2 in known_swaps:
+#     gates[swap1], gates[swap2] = gates[swap2], gates[swap1]
+
+# ---------- GOOD SHIT:
+gates_backup = copy.deepcopy(gates)
+labels_swapped = []
+
+while find_correct_bits(1, gates) < MAX_BITS:
+    gates = copy.deepcopy(gates_backup)
+    best_pair = [find_correct_bits(0, gates), None, None]
+    for swap1, swap2 in tqdm.tqdm(
+        itertools.combinations(gates, 2), total=(len(gates) * (len(gates) - 1)) // 2
+    ):
+        better_than_nothing = False
+        gates = copy.deepcopy(gates_backup)
+        gates[swap1], gates[swap2] = gates[swap2], gates[swap1]
+        # gates[swap3], gates[swap4] = gates[swap4], gates[swap3]
+        correct_bits = find_correct_bits(best_pair[0], gates)
+        if correct_bits > best_pair[0]:
+            best_pair = [correct_bits, swap1, swap2]
+            better_than_nothing = True
+            print(f"better pair found : {best_pair=}")
+        elif better_than_nothing and correct_bits == best_pair[0]:
+            print(f"match found : {swap1=} {swap2=}")
+    _, swap1, swap2 = best_pair
+    print(f"swapping {swap1} with {swap2}")
+    gates_backup[swap1], gates_backup[swap2] = gates_backup[swap2], gates_backup[swap1]
+    labels_swapped.append(swap1)
+    labels_swapped.append(swap2)
+# -----
+
 
 random.seed()
 for n in range(1000):
-    number1 = random.randint(0, 2**min(n,44))
-    number2 = random.randint(0, 2**min(n,44))
+    number1 = random.randint(0, 2 ** min(n, 44))
+    number2 = random.randint(0, 2 ** min(n, 44))
     result = test_addition(number1, number2, gates)
     if number1 + number2 != result:
-        print(f"{number1=}, {number2=}, {result=}, {n=}")
-        break
-else:
-    print("all checks out")
-    quit()
-# ---------- GOOD SHIT:
-gates_backup = copy.deepcopy(gates)
-best_pair = [find_correct_bits(0,gates), None, None]
-for swap1, swap2 in tqdm.tqdm(itertools.combinations(gates, 2), total=(len(gates) ** 2)//2):
-    better_than_nothing = False
-    gates = copy.deepcopy(gates_backup)
-    gates[swap1], gates[swap2] = gates[swap2], gates[swap1]
-    # gates[swap3], gates[swap4] = gates[swap4], gates[swap3]
-    correct_bits = find_correct_bits(best_pair[0], gates)
-    if correct_bits > best_pair[0]:
-        best_pair = [correct_bits, swap1, swap2]
-        better_than_nothing = True
-        print(f"better pair found : {best_pair=}")
-        print(f"better pair found : {best_pair=}")
-        print(f"better pair found : {best_pair=}")
-    elif better_than_nothing and correct_bits == best_pair[0]:
-        print(f"match found : {swap1=} {swap2=}")
-        print(f"match found : {swap1=} {swap2=}")
-        print(f"match found : {swap1=} {swap2=}")
+        print(
+            f"{number1=}, {number2=}, {result=}, expected_result={number1+number2} {n=}"
+        )
+        quit()
 
-# -----
-
+print("all checks out!")
+print(f"answer: {','.join(sorted(labels_swapped))}")
