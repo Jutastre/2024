@@ -4,23 +4,29 @@ import sys
 import tqdm
 import random
 
+# import threading
+
 sys.setrecursionlimit(150)
 random.seed()
 FILENAME = "in.txt"
 MAX_BITS = 44
 BIG_NUMBER = 2**MAX_BITS
 
+RANDOM_NUMBER_COUNT = 8
+PRECALCULATE_RANDOM = True
+THREADS = 64
 
-# dbj z16 ; qqp jcd ; z36 fhv
-# known_swaps = [("fjh", "qff"), ("dbj", "z16"), ("qqp", "jcd"), ("z36", "fhv")]
-# known_swaps = [("x00","fjh")]
+known_swaps = None
 
-
-# qff, qnw
+# ("qff", "qnw")
+# ("dbj", "z16")
+# match found : swap1='qqp' swap2='wdr'
+# match found : swap1='jcd' swap2='dmw'
 
 # known_swaps = [("qff","qnw"),("dbj","z16"),("qqp","z23"),("z36","fbq")]
-# known_swaps = [("qff", "qnw"), ("dbj", "z16"), ("qqp", "z23")]
-
+# known_swaps = [("qff", "qnw"), ("dbj", "z16"), ("jcd", "dmw")]
+# known_swaps = ["qff","qnw","dbj","z16","qqp","z23","z36","fbq"]
+# known_swaps = ["z10","z09"]
 
 with open(FILENAME) as f:
     data = f.read().strip().split("\n\n")
@@ -100,76 +106,146 @@ def test_addition(x: int, y: int, gates):
     try:
         result = get_z(copied_gates)
     except RecursionError:
-        return None
+        return 0
     return result
 
 
+if PRECALCULATE_RANDOM:
+    random_numbers = [random.randint(0, BIG_NUMBER) for _ in range(RANDOM_NUMBER_COUNT)]
+    print(f"random numbers:")
+    for number in random_numbers:
+        print(number)
+
+
 def find_correct_bits(minimum_bits: int, gates):
-    for n in range(max(minimum_bits, 1), MAX_BITS):
+    for n in range(max(minimum_bits, 1), MAX_BITS + 1):
         # print(f"testing with {n=}")
+        modulo = 2 ** (n + 1)
+        test_result1 = test_addition(0, 0, gates) % modulo
+        if test_result1 != 0:
+            return n - 1
         test_number = 2 ** (n - 1)
-        test_result1 = test_addition(test_number, 0, gates)
-        test_result2 = test_addition(0, test_number, gates)
-        test_result3 = test_addition(test_number, test_number, gates)
+        test_result1 = test_addition(test_number, 0, gates) % modulo
+        test_result2 = test_addition(0, test_number, gates) % modulo
+        test_result3 = test_addition(test_number, test_number, gates) % modulo
         expected_result = test_number
         if (
             test_result1 != expected_result
             or test_result1 != test_result2
-            or test_result3 != test_number * 2
+            or test_result3 != (test_number * 2)
         ):
             return n - 1
 
         test_number = (2**n) - 1
-        test_result1 = test_addition(test_number, 0, gates)
-        test_result2 = test_addition(0, test_number, gates)
+        test_result1 = test_addition(test_number, 0, gates) % modulo
+        test_result2 = test_addition(0, test_number, gates) % modulo
+        test_result3 = test_addition(test_number, test_number, gates) % modulo
         expected_result = test_number
-        # print(f"{expected_result=}    {test_result1=}    {test_result2=}")
-        if test_result1 != expected_result or test_result1 != test_result2:
+        if (
+            test_result1 != expected_result
+            or test_result1 != test_result2
+            or test_result3 != (test_number * 2)
+        ):
             return n - 1
         if n == 1:
-            if test_addition(0, 0, gates) != 0:
+            if test_addition(0, 0, gates) % modulo != 0:
                 return 0
-            if test_addition(1, 0, gates) != 1:
+            if test_addition(1, 0, gates) % modulo != 1:
                 return 0
-            if test_addition(0, 1, gates) != 1:
+            if test_addition(0, 1, gates) % modulo != 1:
                 return 0
-            if test_addition(1, 1, gates) % 2 == 0:
+            if test_addition(1, 1, gates) % modulo == 0:
                 continue
         else:
             num = int("0" + ("1" * (n - 1)), base=2)
-            if test_addition(num, num, gates) != num + num:
+            if test_addition(num, num, gates) % modulo != num + num:
                 return n - 1
-        for m in range(3):
-            random_number = random.randint(0, 2 ** (n - 1))
-            test_result1 = test_addition(random_number, 0, gates)
-            test_result2 = test_addition(0, random_number, gates)
-            expected_result = random_number
+        iterator = random_numbers if PRECALCULATE_RANDOM else range(RANDOM_NUMBER_COUNT)
+        for m1,m2 in itertools.pairwise(iterator):
+            if PRECALCULATE_RANDOM:
+                random_number1 = m1 % (modulo // 2)
+                random_number2 = m2 % (modulo // 2)
+            else:
+                random_number1 = random.randint(0, 2 ** (n - 1))
+                random_number2 = random.randint(0, 2 ** (n - 1))
+            test_result1 = test_addition(random_number1, 0, gates) % modulo
+            test_result2 = test_addition(0, random_number1, gates) % modulo
+            expected_result = random_number1
             # print(f"{expected_result=}    {test_result1=}    {test_result2=}")
             if test_result1 != expected_result or test_result1 != test_result2:
                 return n - 1
-            doubled_number = test_addition(random_number, random_number, gates)
-            if doubled_number != random_number * 2:
+            doubled_number = test_addition(random_number1, random_number1, gates) % modulo
+            if doubled_number != random_number1 * 2:
+                return n - 1
+            added_number = test_addition(random_number1, random_number2, gates) % modulo
+            if added_number != random_number1 + random_number2:
                 return n - 1
     return MAX_BITS
 
 
-# result = test_addition(0b111,0,gates)
-# binary_result = f"{result:050b}"
-# print(binary_result)
+# x_gates = sorted([gate for gate in gates.keys() if gate[0] == "x"], reverse=False)
+# y_gates = sorted([gate for gate in gates.keys() if gate[0] == "y"], reverse=False)
+# z_gates = sorted([gate for gate in gates.keys() if gate[0] == "z"], reverse=False)
+# for target_gate in x_gates:
+#     print(f"gate {target_gate}:", end = "")
+#     for gate,content in gates.items():
+#         gate_type, value = content
+#         if gate_type == "ABS":
+#             continue
+#         if value[0] == target_gate or value[1] == target_gate:
+#             print(f"({gate_type} {gate}), ", end = "")
+#     print("")
+# quit()
+def evaluate_swap_pair(initial_gates, possible_swaps, start, stop, results: list):
+    gates = copy.deepcopy(gates_backup)
+    best_pair = [find_correct_bits(0, gates), None, None]
+    matching_pairs = []
+    tqdm.tqdm.write(f"starting with {best_pair[0]} correct bits")
+    better_than_nothing = False
+    for swap1, swap2 in itertools.islice(possible_swaps, start, stop):
+        gates = copy.deepcopy(initial_gates)
+        gates[swap1], gates[swap2] = gates[swap2], gates[swap1]
+        # gates[swap3], gates[swap4] = gates[swap4], gates[swap3]
+        correct_bits = find_correct_bits(best_pair[0], gates)
+        if correct_bits > best_pair[0]:
+            best_pair = [correct_bits, swap1, swap2]
+            matching_pairs = []
+            better_than_nothing = True
+            # tqdm.tqdm.write(f"better pair found : {best_pair=}")
+        elif better_than_nothing and correct_bits == best_pair[0]:
+            matching_pairs.append(swap1, swap2)
+            # tqdm.tqdm.write(f"match found : {swap1=} {swap2=}")
+    results.append(best_pair)
 
-# for swap1, swap2 in known_swaps:
-#     gates[swap1], gates[swap2] = gates[swap2], gates[swap1]
+
+if known_swaps:
+    for swap1, swap2 in itertools.batched(known_swaps, 2):
+        gates[swap1], gates[swap2] = gates[swap2], gates[swap1]
 
 # ---------- GOOD SHIT:
 gates_backup = copy.deepcopy(gates)
+
+non_input_gates = [gate for gate in gates if (not (gate[0] == "x" or gate[0] == "y"))]
+print(f"{len(gates)=}")
+print(f"{len(non_input_gates)=}")
+
 labels_swapped = []
 
-while find_correct_bits(1, gates) < MAX_BITS:
-    gates = copy.deepcopy(gates_backup)
+while find_correct_bits(1, gates) < 33:
+# for _ in range(2):
+
+    # gates = copy.deepcopy(gates_backup)
     best_pair = [find_correct_bits(0, gates), None, None]
+    print(f"starting search with {best_pair[0]} bits correct already")
+    non_input_gates = [
+        gate for gate in gates if (not (gate[0] == "x" or gate[0] == "y"))
+    ]
     for swap1, swap2 in tqdm.tqdm(
-        itertools.combinations(gates, 2), total=(len(gates) * (len(gates) - 1)) // 2
+        itertools.combinations(non_input_gates, 2),
+        total=(len(non_input_gates) * (len(non_input_gates) - 1)) // 2,
     ):
+        # if swap1[0] == "x" or swap1[0] == "y" or swap2[0] == "x" or swap2[0] == "y":
+        #     continue
         better_than_nothing = False
         gates = copy.deepcopy(gates_backup)
         gates[swap1], gates[swap2] = gates[swap2], gates[swap1]
@@ -192,20 +268,58 @@ while find_correct_bits(1, gates) < MAX_BITS:
         labels_swapped.append(swap2)
     else:
         tqdm.tqdm.write(f"No swaps found! Exiting...")
-        quit()
+        break
+    gates = copy.deepcopy(gates_backup)
 # -----
+# ____ BELOW THIS SHItTY MULTITHREADINg
 
 
+# # tqdm.tqdm.write(f"starting with {best_pair[0]} correct bits")
+# better_than_nothing = False
+# # for swap1, swap2 in tqdm.tqdm(
+# #     itertools.combinations(gates, 2),
+# #     total=(len(gates) * (len(gates) - 1)) // 2,
+# #     smoothing=0.01,
+# # ):
+# job_length = (len(gates) * (len(gates) - 1)) // 2
+# result_list = []
+# threads = []
+# for thread_idx in range(THREADS):
+#     results = []
+#     result_list.append(results)
+#     start = (job_length // 64) * thread_idx
+#     stop = max((((job_length // 64) * thread_idx + 1) - 1), job_length)
+#     threads.append(threading.Thread(
+#         target=evaluate_swap_pair,
+#         args=(gates, itertools.combinations(gates, 2), start, stop, results),
+#     ))
+
+# for thread in threads:
+#     thread.start()
+# for thread in threads:
+#     thread.join()
+# best_pair = [0,None,None]
+# for pair in result_list:
+#     if pair[0] > best_pair:
+#         best_pair = pair
+
+# ---------- FINAL SANITY CHECK:
+
+gates = copy.deepcopy(gates_backup)
+no_errors = True
 random.seed()
-for n in range(1000):
-    number1 = random.randint(0, 2 ** min(n, 44))
-    number2 = random.randint(0, 2 ** min(n, 44))
+for n in range(30):
+    number1 = random.randint(0, 2 ** min(n, 33))
+    number2 = random.randint(0, 2 ** min(n, 33))
     result = test_addition(number1, number2, gates)
     if number1 + number2 != result:
         print(
             f"{number1=}, {number2=}, {result=}, expected_result={number1+number2} {n=}"
         )
-        quit()
-
-print("all checks out!")
-print(f"answer: {','.join(sorted(labels_swapped))}")
+        no_errors = False
+if no_errors:
+    print("all checks out!")
+    correct_labels = labels_swapped
+    if known_swaps:
+        correct_labels += known_swaps
+    print(f"answer: {','.join(sorted(correct_labels))}")
