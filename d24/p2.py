@@ -9,12 +9,13 @@ import random
 sys.setrecursionlimit(150)
 random.seed()
 FILENAME = "in.txt"
-MAX_BITS = 44
+MAX_BITS = 45
 BIG_NUMBER = 2**MAX_BITS
 
-RANDOM_NUMBER_COUNT = 8
+RANDOM_NUMBER_COUNT = 4
 PRECALCULATE_RANDOM = True
 THREADS = 64
+TARGET_BITS = 45
 
 known_swaps = None
 
@@ -27,6 +28,7 @@ known_swaps = None
 # known_swaps = [("qff", "qnw"), ("dbj", "z16"), ("jcd", "dmw")]
 # known_swaps = ["qff","qnw","dbj","z16","qqp","z23","z36","fbq"]
 # known_swaps = ["z10","z09"]
+known_swaps = ["qff","qnw","qcr","z16"]
 
 with open(FILENAME) as f:
     data = f.read().strip().split("\n\n")
@@ -231,7 +233,9 @@ print(f"{len(non_input_gates)=}")
 
 labels_swapped = []
 
-while find_correct_bits(1, gates) < 33:
+target_bits = min(TARGET_BITS,44)
+
+while find_correct_bits(1, gates) < target_bits:
 # for _ in range(2):
 
     # gates = copy.deepcopy(gates_backup)
@@ -242,7 +246,8 @@ while find_correct_bits(1, gates) < 33:
     ]
     for swap1, swap2 in tqdm.tqdm(
         itertools.combinations(non_input_gates, 2),
-        total=(len(non_input_gates) * (len(non_input_gates) - 1)) // 2,
+        total=(len(non_input_gates) * (len(non_input_gates) - 1)) // 2, 
+        ncols= 200
     ):
         # if swap1[0] == "x" or swap1[0] == "y" or swap2[0] == "x" or swap2[0] == "y":
         #     continue
@@ -308,9 +313,9 @@ while find_correct_bits(1, gates) < 33:
 gates = copy.deepcopy(gates_backup)
 no_errors = True
 random.seed()
-for n in range(30):
-    number1 = random.randint(0, 2 ** min(n, 33))
-    number2 = random.randint(0, 2 ** min(n, 33))
+for n in range(target_bits//2, target_bits*2):
+    number1 = random.randint(0, 2 ** min(n, target_bits-1))
+    number2 = random.randint(0, 2 ** min(n, target_bits-1))
     result = test_addition(number1, number2, gates)
     if number1 + number2 != result:
         print(
