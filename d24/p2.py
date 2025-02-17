@@ -12,7 +12,7 @@ FILENAME = "in.txt"
 MAX_BITS = 45
 BIG_NUMBER = 2**MAX_BITS
 
-RANDOM_NUMBER_COUNT = 4
+RANDOM_NUMBER_COUNT = 32 # enough random numbers will solve it but i'd like a solution that isnt based on chance...
 PRECALCULATE_RANDOM = True
 THREADS = 64
 TARGET_BITS = 45
@@ -28,7 +28,9 @@ known_swaps = None
 # known_swaps = [("qff", "qnw"), ("dbj", "z16"), ("jcd", "dmw")]
 # known_swaps = ["qff","qnw","dbj","z16","qqp","z23","z36","fbq"]
 # known_swaps = ["z10","z09"]
-known_swaps = ["qff","qnw","qcr","z16"]
+# known_swaps = ["qff","qnw","qcr","z16"]
+# qcr IS WRONG
+# dbj IS WRONG
 
 with open(FILENAME) as f:
     data = f.read().strip().split("\n\n")
@@ -235,23 +237,25 @@ labels_swapped = []
 
 target_bits = min(TARGET_BITS,44)
 
+non_input_gates = [
+    gate for gate in gates if (not (gate[0] == "x" or gate[0] == "y"))
+]
 while find_correct_bits(1, gates) < target_bits:
 # for _ in range(2):
 
     # gates = copy.deepcopy(gates_backup)
     best_pair = [find_correct_bits(0, gates), None, None]
     print(f"starting search with {best_pair[0]} bits correct already")
-    non_input_gates = [
-        gate for gate in gates if (not (gate[0] == "x" or gate[0] == "y"))
-    ]
+    better_than_nothing = False
     for swap1, swap2 in tqdm.tqdm(
         itertools.combinations(non_input_gates, 2),
         total=(len(non_input_gates) * (len(non_input_gates) - 1)) // 2, 
-        ncols= 200
+        smoothing = 0,
+        ncols= 150
     ):
         # if swap1[0] == "x" or swap1[0] == "y" or swap2[0] == "x" or swap2[0] == "y":
         #     continue
-        better_than_nothing = False
+        
         gates = copy.deepcopy(gates_backup)
         gates[swap1], gates[swap2] = gates[swap2], gates[swap1]
         # gates[swap3], gates[swap4] = gates[swap4], gates[swap3]
